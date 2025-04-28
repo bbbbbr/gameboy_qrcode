@@ -21,6 +21,12 @@
  *   Software.
  */
 
+#include <gbdk/platform.h>
+#pragma bank 255
+BANKREF(qrcodegen)
+
+// #define STANDALONE
+
 #ifdef STANDALONE
     #include <string.h>
 
@@ -30,19 +36,26 @@
     #include <stdlib.h>
     #include <stdio.h>
 
-#define __z88dk_fastcall
-#define debugBorder(a) do {} while(false)
-#define INLINE inline
-#define QRVERSION 8
-#define QRECL qrcodegen_Ecc_MEDIUM
-#define QRSIZE (QRVERSION * 4 + 17)
-#define QRPAD 64
-uint8_t *qrcodegen(const char *text);
+    #define debugBorder(a) do {} while(false)  // TODO
+    #define INLINE inline
+    #define QRVERSION 8
+    #define QRECL qrcodegen_Ecc_MEDIUM
+    #define QRSIZE (QRVERSION * 4 + 17)
+    #define QRPAD 64
+    uint8_t *qrcodegen(const char *text);
 #endif
 
 #ifndef STANDALONE
-#include <common.h>
-#define size_t uint16_t
+    #include <string.h>
+    #include <stdbool.h>
+    #include <stddef.h>
+    #include <stdint.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+
+    #include "qrcodegen.h"
+    #define INLINE inline
+    #define size_t uint16_t
 #endif
 
 #define assert(a)
@@ -184,7 +197,7 @@ uint8_t qr_get8(uint8_t x, uint8_t y) { return getModule8(QRCODE,x,y); }
 // Returns the number of data bytes that can be stored in a QR Code of the given version number, after
 // all function modules are excluded. This includes remainder bits, so it might not be a multiple of 8.
 // The result is in the range [208, 29648]. This could be implemented as a 40-entry lookup table.
-INLINE int getNumRawDataModules() {
+INLINE int getNumRawDataModules(void) {
 	int result = (16 * QRVERSION + 128) * QRVERSION + 64;
 	if (QRVERSION >= 2) {
 		result -= (25 * (QRVERSION / 7 + 2) - 10) * (QRVERSION / 7 + 2) - 55;
@@ -196,7 +209,7 @@ INLINE int getNumRawDataModules() {
 
 // Returns the number of 8-bit codewords that can be used for storing data (not ECC),
 // for the given version number and error correction level. The result is in the range [9, 2956].
-INLINE int getNumDataCodewords() {
+INLINE int getNumDataCodewords(void) {
 	return getNumRawDataModules()
 		- ECC_CODEWORDS_PER_BLOCK_D(QRECL,QRVERSION)
 		* NUM_ERROR_CORRECTION_BLOCKS_D(QRECL,QRVERSION);;
@@ -214,7 +227,7 @@ INLINE int getNumDataCodewords() {
 /*---- Reed-Solomon ECC generator functions ----*/
 
 static uint8_t rs_y;
-static uint8_t reedSolomonMultiply(uint8_t x_) __z88dk_fastcall {
+static uint8_t reedSolomonMultiply(uint8_t x_) {
 	// Russian peasant multiplication
 	uint8_t x=x_, y=rs_y, z=0;
     if (z & 0x80) { z = ((z << 1) ^ 0x1D); } else { z = (z << 1); }
@@ -236,7 +249,7 @@ static uint8_t reedSolomonMultiply(uint8_t x_) __z88dk_fastcall {
 	return z;
 }
 
-static uint8_t reedSolomonMultiply02(uint8_t x_) __z88dk_fastcall {
+static uint8_t reedSolomonMultiply02(uint8_t x_) {
 	// Russian peasant multiplication
 	uint8_t x=x_, y=0x02, z=0;
     if (z & 0x80) { z = ((z << 1) ^ 0x1D); } else { z = (z << 1); }
@@ -281,7 +294,7 @@ static void reedSolomonComputeRemainder(const uint8_t data_[], uint8_t dataLen) 
 }
 
 /////// FAST
-static void reedSolomonComputeDivisor() {
+static void reedSolomonComputeDivisor(void) {
 
     memset(rsdiv,0,RSDegree);
 
@@ -399,7 +412,7 @@ static void initializeFunctionModules(int version, uint8_t qrcode[]) {
 // Draws white function modules and possibly some black modules onto the given QR Code, without changing
 // non-function modules. This does not draw the format bits. This requires all function modules to be previously
 // marked black (namely by initializeFunctionModules()), because this may skip redrawing black function modules.
-static void drawWhiteFunctionModules() {
+static void drawWhiteFunctionModules(void) {
 	// Draw horizontal and vertical timing patterns
 	int i;
     for (i = 7; i < QRSIZE - 7; i += 2) {
@@ -458,7 +471,7 @@ static void drawWhiteFunctionModules() {
 
 
 
-static void drawFormatBitsCopy0(uint16_t bits) __z88dk_fastcall {
+static void drawFormatBitsCopy0(uint16_t bits) {
     
     uint8_t b = bits&0xFF;
     setModuleStatic(QRCODE, 8, 0, b&1); b>>=1;
@@ -482,7 +495,7 @@ static void drawFormatBitsCopy0(uint16_t bits) __z88dk_fastcall {
 	setModuleStatic(QRCODE, 14 - 14, 8, b&1);
 }
 
-static void drawFormatBitsCopy1(uint16_t bits) __z88dk_fastcall {
+static void drawFormatBitsCopy1(uint16_t bits) {
     
     uint8_t b = bits&0xFF;
     uint8_t i;
@@ -496,7 +509,7 @@ static void drawFormatBitsCopy1(uint16_t bits) __z88dk_fastcall {
 	setModuleStatic(QRCODE, 8, QRSIZE - 8, true);  // Always black
 
 }
-static void drawFormatBits() {
+static void drawFormatBits(void) {
     
 	static const int table[] = {1, 0, 3, 2};
 	int data = table[QRECL] << 3 | (int)MASK;  // errCorrLvl is uint2, mask is uint3
@@ -515,7 +528,7 @@ static void drawFormatBits() {
 /*---- Drawing data modules and masking ----*/
 static uint16_t dc_i;
 
-static void drawCodewordsLR(uint8_t x) __z88dk_fastcall {
+static void drawCodewordsLR(uint8_t x) {
     uint8_t y=0;
     while (y<QRSIZE) {
         if (!getModule(QRCODE, x, y)) {
@@ -530,7 +543,7 @@ static void drawCodewordsLR(uint8_t x) __z88dk_fastcall {
     }        
 }
 
-static void drawCodewordsRL(uint8_t x) __z88dk_fastcall {
+static void drawCodewordsRL(uint8_t x) {
     uint8_t y=QRSIZE;
     while (y) {
         y--;
@@ -545,7 +558,7 @@ static void drawCodewordsRL(uint8_t x) __z88dk_fastcall {
     }
 }
 
-static void drawCodewords() {
+static void drawCodewords(void) {
     
     dc_i=0;
     
@@ -572,7 +585,7 @@ static void drawCodewords() {
     drawCodewordsLR(x);
 }
 
-static void applyMask0() {
+static void applyMask0(void) {
     uint8_t invert;
 	for (uint8_t y = 0; y < QRSIZE; y++) {
         invert = ((y&1)?0xAA:~0xAA);
@@ -589,7 +602,7 @@ static void applyMask0() {
 
 /*---- Segment handling ----*/
 
-INLINE int numCharCountBits() { return SELECT(((QRVERSION + 7) / 17), 8, 16, 16); }
+INLINE int numCharCountBits(void) { return SELECT(((QRVERSION + 7) / 17), 8, 16, 16); }
 
 
 
@@ -615,7 +628,7 @@ INLINE void appendBitsToBuffer(unsigned int val, int numBits, uint8_t buffer[], 
 ////////////////////////////////////////////////////////////////////////
 //
 
-uint8_t *qrcodegen(const char *text) __z88dk_fastcall {
+uint8_t *qrcodegen(const char *text) {
     
     
     uint8_t len = 0;
@@ -644,28 +657,26 @@ uint8_t *qrcodegen(const char *text) __z88dk_fastcall {
 		appendBitsToBuffer(padByte, 8, QRCODE, &bitLen);
 	
 	// Draw function and data codeword modules
-    debugBorder(BWhite);
+    // debugBorder(BWhite);
 	addEccAndInterleave(QRCODE, TMPBUFFER);
-    debugBorder(BLightBlue);
+    // debugBorder(BLightBlue);
 	initializeFunctionModules(QRVERSION, QRCODE);
-    debugBorder(BLightGreen); //***
+    // debugBorder(BLightGreen); //***
 	drawCodewords();
-    debugBorder(BLightRed);
+    // debugBorder(BLightRed);
 	drawWhiteFunctionModules();
-    debugBorder(BLightYellow);
+    // debugBorder(BLightYellow);
 	initializeFunctionModules(QRVERSION, TMPBUFFER);
-    debugBorder(BDarkRed); 
+    // debugBorder(BDarkRed); 
     applyMask0();
-    debugBorder(BDarkYellow);
+    // debugBorder(BDarkYellow);
 	drawFormatBits();
-    debugBorder(BBlack);
+    // debugBorder(BBlack);
         
     return QRCODE;
 }
 
-bool qr(uint16_t xy) __z88dk_fastcall {
-	uint8_t x = xy>>8;
-	uint8_t y = xy&0xFF;
+bool qr(uint8_t x, uint8_t y) {
 	if (!x) return 1;
 	if (!y) return 1;
 	if (x>QRSIZE) return 1;

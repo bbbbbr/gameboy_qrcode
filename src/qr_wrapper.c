@@ -22,7 +22,7 @@ bool qr_generate(const char * embed_str, uint16_t len) NONBANKED {
     uint8_t save_bank = CURRENT_BANK;
     SWITCH_ROM(BANK(qrcodegen));
 
-    qrcodegen(embed_str);
+    qrcodegen(embed_str, len);
 
     SWITCH_ROM(save_bank);
 

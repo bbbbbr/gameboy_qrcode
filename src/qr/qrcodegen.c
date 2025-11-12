@@ -635,11 +635,12 @@ INLINE void appendBitsToBuffer(unsigned int val, int numBits, uint8_t buffer[], 
 ////////////////////////////////////////////////////////////////////////
 //
 
-uint8_t *qrcodegen(const char *text) {
+// uint8_t *qrcodegen(const char *text) {
+uint8_t *qrcodegen(const char *text, uint16_t len) {
     
     
-    uint8_t len = 0;
-    while (text[len]!=0) len++;
+    // uint8_t len = 0;
+    // while (text[len]!=0) len++;
 	
 	const uint8_t *data = (const uint8_t *)text;
 

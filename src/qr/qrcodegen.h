@@ -23,6 +23,7 @@ BANKREF_EXTERN(qrcodegen)
 // For example these are the defaults for Version "3"
 // | Version   |                             |   Byte sz     |
 // | --> 3 <-- | 29 x 29   | LOW  | 127 | 77 | --> 53 <--    |
+//
 // Anecdotally the trailing string terminator may be excluded from
 // the total byte count
 
@@ -58,7 +59,8 @@ BANKREF_EXTERN(qrcodegen)
 // USING_MODULE(qrcodegen, PAGE_D);
 
 
-uint8_t *qrcodegen(const char *text);
+// uint8_t *qrcodegen(const char *text);
+uint8_t *qrcodegen(const char *text, uint16_t len);
 bool qr(uint8_t x, uint8_t y);
 
 bool qr_get(uint8_t x, uint8_t y);

@@ -1,18 +1,62 @@
-
-
 #ifndef _QRCODEGEN_H
 #define _QRCODEGEN_H
 
 BANKREF_EXTERN(qrcodegen)
 
+// ========== Configurable Settings ==========
+
 // See: https://www.qrcode.com/en/about/version.html
-// Also, see table further below
-#define QRVERSION 3
+// Also, see "Byte sz" column table further below for selecting QRVERSION
+// Only configured for "Byte" mode operation
+//
+#define QRVERSION 3                   // <---- Configurable to change size and capacity <----
+// #define QRVERSION 4
+
+
+// Manually set this based on the "Byte sz" column that matches:
+// - The "Error Correction" Low setting
+// - And the "Version" which matches QRVERSION above
+//
+#define QR_MAX_PAYLOAD_BYTES 53u      // <---- Change this based on the table below and QRVERSION above <----
+// #define QR_MAX_PAYLOAD_BYTES 78u  // Size for Version "4"
+//
+// For example these are the defaults for Version "3"
+// | Version   |                             |   Byte sz     |
+// | --> 3 <-- | 29 x 29   | LOW  | 127 | 77 | --> 53 <--    |
+// Anecdotally the trailing string terminator may be excluded from
+// the total byte count
+
+
 #define QRECL qrcodegen_Ecc_LOW
+
+
+// ========== Below are Non-Configurable Calculations ==========
+// #define QRPAD 32
+
+// This calculates the width and height in pixels ("modules")
+// of the QR Code image PRIOR to borders
 #define QRSIZE (QRVERSION * 4 + 17)
-#define QRPAD 32
+
+// QR Output row size in bytes should be:
+//   pixel width / 8, rounded up to nearest whole value of 8
+#define PIXELS_PER_BYTE  8u // 1bpp, so 8 horizontal pixels per byte
+#define QR_OUTPUT_ROW_SZ_BYTES  ((QRSIZE + (PIXELS_PER_BYTE - 1u)) / PIXELS_PER_BYTE)
+
+// The output QRCode is stored internally as a 1bpp image with
+// each row composed of bytes, where a byte stores 8 sequential horizontal pixels.
+//
+// So the size of the image buffer is~ ROUND_UP(WIDTH / 8) * HEIGHT
+
+// This is the Width and Height of the QR code image prior to any user scaling
+// 1 pixel of border on each side, hence +2
+#define QR_BORDER_WIDTH 1u
+#define QR_FINAL_PIXEL_WIDTH  (QRSIZE + (QR_BORDER_WIDTH * 2u))
+#define QR_FINAL_PIXEL_HEIGHT (QRSIZE + (QR_BORDER_WIDTH * 2u))
+
+
 
 // USING_MODULE(qrcodegen, PAGE_D);
+
 
 uint8_t *qrcodegen(const char *text);
 bool qr(uint8_t x, uint8_t y);

@@ -95,7 +95,8 @@ enum qrcodegen_Mode {
 // THIS VERSION SUPPORTS ONLY BYTE MODE
 #define MODE qrcodegen_Mode_BYTE
 
-#define qrcodegen_BUFFER_SZ  (QRPAD * QRSIZE/8)
+// #define qrcodegen_BUFFER_SZ  (QRPAD * QRSIZE/8)
+#define qrcodegen_BUFFER_SZ  (QR_OUTPUT_ROW_SZ_BYTES * QR_FINAL_PIXEL_HEIGHT)
 
 static uint8_t TMPBUFFER[qrcodegen_BUFFER_SZ];
 static uint8_t QRCODE[qrcodegen_BUFFER_SZ];
@@ -161,13 +162,17 @@ INLINE bool getBit(int x, int i) {
 
 INLINE bool getModule(const uint8_t qrcode[], uint8_t x, uint8_t y) {
 	
-	return qrcode[y * (QRPAD>>3) + (x>>3)] & qr_bitmask[x];
+    // return qrcode[y * (QRPAD>>3) + (x>>3)] & qr_bitmask[x];
+	return qrcode[y * QR_OUTPUT_ROW_SZ_BYTES + (x>>3)] & qr_bitmask[x];
 }
 
 INLINE void setModule(uint8_t qrcode[], uint8_t x, uint8_t y, bool isBlack) {
-    uint8_t v =  qrcode[y * (QRPAD>>3) + (x>>3)];
+    // uint8_t v =  qrcode[y * (QRPAD>>3) + (x>>3)];
+    uint16_t index = y * QR_OUTPUT_ROW_SZ_BYTES + (x>>3);
+    uint8_t v =  qrcode[index];
     v = (v & ~qr_bitmask[x]) | (((uint8_t)((uint8_t)0)-(!!isBlack)) & qr_bitmask[x]);
-    qrcode[y * (QRPAD>>3) + (x>>3)] = v;
+    // qrcode[y * (QRPAD>>3) + (x>>3)] = v;
+    qrcode[index] = v;
 }
 
 static void setModuleStatic(uint8_t qrcode[], uint8_t x, uint8_t y, bool isBlack) { setModule(qrcode, x, y, isBlack); }
@@ -178,8 +183,10 @@ static void setModuleBounded(uint8_t qrcode[], int x, int y, bool isBlack) {
 }
 
 
-INLINE uint8_t getModule8(const uint8_t qrcode[], uint8_t x, uint8_t y) { return qrcode[y * (QRPAD>>3) + (x>>3)]; }
-INLINE void setModule8(uint8_t qrcode[], uint8_t x, uint8_t y, uint8_t value) { qrcode[y * (QRPAD>>3) + (x>>3)] = value; }
+// INLINE uint8_t getModule8(const uint8_t qrcode[], uint8_t x, uint8_t y) { return qrcode[y * (QRPAD>>3) + (x>>3)]; }
+// INLINE void setModule8(uint8_t qrcode[], uint8_t x, uint8_t y, uint8_t value) { qrcode[y * (QRPAD>>3) + (x>>3)] = value; }
+INLINE uint8_t getModule8(const uint8_t qrcode[], uint8_t x, uint8_t y) { return qrcode[y * QR_OUTPUT_ROW_SZ_BYTES + (x>>3)]; }
+INLINE void setModule8(uint8_t qrcode[], uint8_t x, uint8_t y, uint8_t value) { qrcode[y * QR_OUTPUT_ROW_SZ_BYTES + (x>>3)] = value; }
 uint8_t qr_get8(uint8_t x, uint8_t y) { return getModule8(QRCODE,x,y); }
 
 

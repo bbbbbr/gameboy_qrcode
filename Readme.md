@@ -9,7 +9,8 @@ https://github.com/nayuki/QR-Code-generator
 If this (generic) version is too slow there is another which is faster.
 I've made some optimizations to it for a 2-3x speedup (generating and drawing),
 though it takes up more space (several banks of look-up tables). It's not meant
-for general purpose integration like this, but can be extracted from this project:
+for general purpose integration like this version, nevertheless it can be extracted
+from the following project if desired:
 https://github.com/bbbbbr/gameboy_qr_paint
 
 ### A runtime QR Code generator for the Game Boy that can build with GBDK-2020
